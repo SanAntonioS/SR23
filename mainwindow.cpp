@@ -7,6 +7,13 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    ui->btnGetTemp->setDisabled(1);
+    ui->btnSetCom->setDisabled(1);
+    ui->btnAT->setDisabled(1);
+    ui->btnCtrlTemp->setDisabled(1);
+    ui->btnSetTemp->setDisabled(1);
+    ui->btnSTBY->setDisabled(1);
+
     timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(slotGetTemp()));
 
@@ -147,9 +154,10 @@ void MainWindow::DataSend()
 
 void MainWindow::slotGetTemp()
 {
-    static int count = 0;
-    static float Temperature, Power;
+    static uint count = 0;
+    static float Temperature, Power, sec;
 
+    sec = float(count) / 10;
     if(count%2 == 0){
         Temperature = AppData::getData(messageRecv);
 
@@ -159,19 +167,20 @@ void MainWindow::slotGetTemp()
         QFile file(csvFile);
         file.open( QIODevice::Append );
         QTextStream out(&file);
-        out<<tr("%1,").arg(count/2)<<tr("%2,").arg(Temperature)<<tr("%3,\n").arg(Power);
+        out<<tr("%1,").arg(sec)<<tr("%2,").arg(Temperature)<<tr("%3,\n").arg(Power);
         file.close();
 
         QChart *qchart =(QChart *)ui->graphicsView->chart();
         QLineSeries *ser0 = (QLineSeries *)ui->graphicsView->chart()->series().at(0);
         QLineSeries *ser1 = (QLineSeries *)ui->graphicsView->chart()->series().at(1);
-
         //更新数据
-        ser0->append(count/2 ,Temperature);
-        ser1->append(count/2 ,Power);
+        ser0->append(sec ,Temperature);
+        ser1->append(sec ,Power);
 
-        if (count%20 == 0)
-            qchart->axisX()->setMax(10 + (count/2));
+        if (count%100 == 0)
+            qchart->axisX()->setMax(10 + (count/10));
+        if (Temperature > 100)
+            qchart->axisY()->setMax(Temperature * 1.2);
 
         messageRecv.clear();
         processData("R01020");
@@ -215,7 +224,8 @@ void MainWindow::on_OpenSerialButton_clicked()
         // 打开状态，按钮显示“关闭串口”
         ui->OpenSerialButton->setText("  关闭串口");
         // 允许操作“发送字符操作”
-        ui->btnGetTemp->setDisabled(false);
+        ui->btnGetTemp->setDisabled(0);
+        ui->btnSetCom->setDisabled(0);
         // 打开状态，颜色为红色
         ui->OpenSerialButton->setStyleSheet("color: red;");
         // 打开，显示灯为绿色
@@ -239,5 +249,92 @@ void MainWindow::on_btnGetTemp_clicked()
 
     file.close();
 
-    timer->start(500);
+    timer->start(100);
+}
+
+void MainWindow::on_btnSetCom_clicked()
+{
+    if (ui->txtCom->text() == "LOCAL") {
+        processData("W018C0,0001");
+        serial->write(messageSend);
+        ui->txtCom->setText("COM");
+
+        ui->btnAT->setEnabled(1);
+        ui->btnCtrlTemp->setEnabled(1);
+        ui->btnSetTemp->setEnabled(1);
+        ui->btnSTBY->setEnabled(1);
+    }
+    else {
+        processData("W018C0,0000");
+        serial->write(messageSend);
+        ui->txtCom->setText("LOCAL");
+
+        ui->btnAT->setDisabled(1);
+        ui->btnCtrlTemp->setDisabled(1);
+        ui->btnSetTemp->setDisabled(1);
+        ui->btnSTBY->setDisabled(1);
+    }
+}
+
+void MainWindow::on_btnCtrlTemp_clicked()
+{
+    if (ui->btnCtrlTemp->text() == "开始控温"){
+        processData("W01900,0000");
+        serial->write(messageSend);
+        ui->btnCtrlTemp->setText("停止控温");
+    }
+    else {
+        processData("W01900,0001");
+        serial->write(messageSend);
+        ui->btnCtrlTemp->setText("开始控温");
+    }
+
+}
+
+void MainWindow::on_btnSetTemp_clicked()
+{
+    float num = ui->TxtSv->text().toFloat() * 10;
+    QString strHex = AppData::decimalToStrHex(num);
+
+    if (strHex.length() == 4)
+        processData("W03000," + strHex.toUpper());
+    else if (strHex.length() == 3)
+        processData("W03000,0" + strHex.toUpper());
+    else if (strHex.length() == 2)
+        processData("W03000,00" + strHex.toUpper());
+
+    qDebug() << messageSend;
+    serial->write(messageSend);
+}
+
+void MainWindow::on_btnSTBY_clicked()
+{
+    if (ui->btnSTBY->text() == "待机"){
+        processData("W01860,0001");
+        serial->write(messageSend);
+        ui->btnSTBY->setText("运行");
+        ui->txtSTBY->setText("STBY");
+    }
+    else {
+        processData("W01860,0000");
+        serial->write(messageSend);
+        ui->btnSTBY->setText("待机");
+        ui->txtSTBY->setText("RUN");
+    }
+}
+
+void MainWindow::on_btnAT_clicked()
+{
+    if (ui->btnAT->text() == "开始自整定"){
+        processData("W01840,0001");
+        serial->write(messageSend);
+        ui->btnAT->setText("退出自整定");
+        ui->txtAT->setText("AT");
+    }
+    else {
+        processData("W01840,0000");
+        serial->write(messageSend);
+        ui->btnAT->setText("开始自整定");
+        ui->txtAT->setText(" ");
+    }
 }

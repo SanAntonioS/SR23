@@ -39,6 +39,16 @@ private slots:
 
     void on_btnGetTemp_clicked();
 
+    void on_btnSetCom_clicked();
+
+    void on_btnCtrlTemp_clicked();
+
+    void on_btnSetTemp_clicked();
+
+    void on_btnSTBY_clicked();
+
+    void on_btnAT_clicked();
+
 private:
     QByteArray      messageSend;
     QByteArray      messageRecv;
