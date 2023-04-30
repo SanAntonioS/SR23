@@ -155,33 +155,37 @@ void MainWindow::DataSend()
 void MainWindow::slotGetTemp()
 {
     static uint count = 0;
-    static float Temperature, Power, sec;
+    static float Temperature, Power, maxY = 0;
 
-    sec = float(count) / 10;
     if(count%2 == 0){
         Temperature = AppData::getData(messageRecv);
 
         ui->labTemp->setText(QString::number(Temperature) + "℃");
         ui->labPower->setText(QString::number(Power) + "%");
 
-        QFile file(csvFile);
-        file.open( QIODevice::Append );
-        QTextStream out(&file);
-        out<<tr("%1,").arg(sec)<<tr("%2,").arg(Temperature)<<tr("%3,\n").arg(Power);
-        file.close();
+        if(Temperature != 0) {
+            QFile file(csvFile);
+            file.open( QIODevice::Append );
+            QTextStream out(&file);
+            out<<tr("%1,").arg(count/2)<<tr("%2,").arg(Temperature)<<tr("%3,\n").arg(Power);
+            file.close();
 
-        QChart *qchart =(QChart *)ui->graphicsView->chart();
-        QLineSeries *ser0 = (QLineSeries *)ui->graphicsView->chart()->series().at(0);
-        QLineSeries *ser1 = (QLineSeries *)ui->graphicsView->chart()->series().at(1);
-        //更新数据
-        ser0->append(sec ,Temperature);
-        ser1->append(sec ,Power);
+            QChart *qchart =(QChart *)ui->graphicsView->chart();
+            QLineSeries *ser0 = (QLineSeries *)ui->graphicsView->chart()->series().at(0);
+            QLineSeries *ser1 = (QLineSeries *)ui->graphicsView->chart()->series().at(1);
+            //更新数据
+            ser0->append(count/2 ,Temperature);
+            ser1->append(count/2 ,Power);
 
-        if (count%100 == 0)
-            qchart->axisX()->setMax(10 + (count/10));
-        if (Temperature > 100)
-            qchart->axisY()->setMax(Temperature * 1.2);
+            if (count % 20 == 0)
+                qchart->axisX()->setMax(10 + (count/2));
+            if (Temperature > maxY) {
+                maxY = Temperature;
+                if (maxY > 100)
+                    qchart->axisY()->setMax(maxY * 1.2);
+            }
 
+        }
         messageRecv.clear();
         processData("R01020");
         serial->write(messageSend);
@@ -245,11 +249,11 @@ void MainWindow::on_btnGetTemp_clicked()
     file.open( QIODevice::ReadWrite | QIODevice::Text );
 
     QTextStream out(&file);
-    out<<tr("time,")<<tr("temperature,")<<tr("power,\n");
+    out<<tr("time(s),")<<tr("temperature(℃),")<<tr("power(%),\n");
 
     file.close();
 
-    timer->start(100);
+    timer->start(500);
 }
 
 void MainWindow::on_btnSetCom_clicked()
