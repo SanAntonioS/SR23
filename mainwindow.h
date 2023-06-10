@@ -35,6 +35,7 @@ private slots:
     void    DataReceived();
     void    DataSend();
     void    slotGetTemp();
+    void    slotGetPID();
     void    on_OpenSerialButton_clicked();
 
     void on_btnGetTemp_clicked();
@@ -49,6 +50,8 @@ private slots:
 
     void on_btnAT_clicked();
 
+    void on_btnGetPID_clicked();
+
 private:
     QByteArray      messageSend;
     QByteArray      messageRecv;
@@ -57,5 +60,6 @@ private:
     Ui::MainWindow  *ui;
     QSerialPort     *serial;
     QTimer          *timer;
+    QTimer          *PIDtimer;
 };
 #endif // MAINWINDOW_H

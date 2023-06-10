@@ -9,7 +9,7 @@ class AppData
 public:
     static int     strHexToDecimal(const QString &strHex);
     static QString decimalToStrHex(int decimal);
-    static float   getData(QByteArray data);
+    static int   getData(QByteArray data);
 };
 
 #endif // APPDATA_H

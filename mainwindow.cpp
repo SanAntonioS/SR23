@@ -7,6 +7,14 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    ui->tabPID->setRowCount(1);
+    ui->tabPID->setColumnWidth(0,100);
+    ui->tabPID->setColumnWidth(1,100);
+    ui->tabPID->setColumnWidth(2,100);
+    ui->tabPID->setColumnWidth(3,100);
+    ui->tabPID->setColumnWidth(4,100);
+    ui->tabPID->setColumnWidth(5,100);
+
     ui->btnGetTemp->setDisabled(1);
     ui->btnSetCom->setDisabled(1);
     ui->btnAT->setDisabled(1);
@@ -16,6 +24,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(slotGetTemp()));
+
+    PIDtimer = new QTimer(this);
+    connect(PIDtimer, SIGNAL(timeout()), this, SLOT(slotGetPID()));
 
     creatCharts();
     SerialPortInit();
@@ -158,7 +169,7 @@ void MainWindow::slotGetTemp()
     static float Temperature, Power, maxY = 0;
 
     if(count%2 == 0){
-        Temperature = AppData::getData(messageRecv);
+        Temperature = AppData::getData(messageRecv) * 0.1;
 
         ui->labTemp->setText(QString::number(Temperature) + "℃");
         ui->labPower->setText(QString::number(Power) + "%");
@@ -187,17 +198,77 @@ void MainWindow::slotGetTemp()
 
         }
         messageRecv.clear();
-        processData("R01020");
+        processData("R01020"); //读取功率
         serial->write(messageSend);
     }
     else {
-        Power = AppData::getData(messageRecv);
+        Power = AppData::getData(messageRecv) * 0.1;
         messageRecv.clear();
-        processData("R02800");
+        processData("R02800"); //读取温度
         serial->write(messageSend);
     }
     count ++;
 
+}
+
+void MainWindow::slotGetPID()
+{
+    static char count = 0;
+    switch (count) {
+    case 0:{
+        messageRecv.clear();
+        processData("R04000");
+        serial->write(messageSend);
+        count ++;
+        }break;
+    case 1:{
+        QString P = QString::number(AppData::getData(messageRecv) * 0.1);
+        ui->tabPID->setItem(0, 0, new QTableWidgetItem(P));
+        messageRecv.clear();
+        processData("R04010");
+        serial->write(messageSend);
+        count ++;
+    }break;
+    case 2:{
+        QString I = QString::number(AppData::getData(messageRecv));
+        ui->tabPID->setItem(0, 1, new QTableWidgetItem(I));
+        messageRecv.clear();
+        processData("R04020");
+        serial->write(messageSend);
+        count ++;
+    }break;
+    case 3:{
+        QString D = QString::number(AppData::getData(messageRecv));
+        ui->tabPID->setItem(0, 2, new QTableWidgetItem(D));
+        messageRecv.clear();
+        processData("R04030");
+        serial->write(messageSend);
+        count ++;
+    }break;
+    case 4:{
+        QString MR = QString::number(AppData::getData(messageRecv) * 0.1);
+        ui->tabPID->setItem(0, 3, new QTableWidgetItem(MR));    //MR -50.0% to 50.0%
+        messageRecv.clear();
+        processData("R04040");
+        serial->write(messageSend);
+        count ++;
+    }break;
+    case 5:{
+        QString DF = QString::number(AppData::getData(messageRecv));
+        ui->tabPID->setItem(0, 4, new QTableWidgetItem(DF));
+        messageRecv.clear();
+        processData("R04070");
+        serial->write(messageSend);
+        count ++;
+    }break;
+    case 6:{
+        QString SF = QString::number(AppData::getData(messageRecv) * 0.01);
+        ui->tabPID->setItem(0, 5, new QTableWidgetItem(SF));
+        messageRecv.clear();
+        count ++;
+    }break;
+    default:break;
+    }
 }
 
 void MainWindow::on_OpenSerialButton_clicked()
@@ -341,4 +412,9 @@ void MainWindow::on_btnAT_clicked()
         ui->btnAT->setText("开始自整定");
         ui->txtAT->setText(" ");
     }
+}
+
+void MainWindow::on_btnGetPID_clicked()
+{
+    PIDtimer->start(200);
 }

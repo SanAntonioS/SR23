@@ -3,6 +3,7 @@
 int AppData::strHexToDecimal(const QString &strHex)
 {
     bool ok;
+
     return strHex.toInt(&ok, 16);
 }
 
@@ -16,10 +17,20 @@ QString AppData::decimalToStrHex(int decimal)
     return temp;
 }
 
-float AppData::getData(QByteArray data)
+int AppData::getData(QByteArray data)
 {
     data = data.left(data.indexOf('\x03')).right(data.indexOf(",") - 3);
-    float temp = strHexToDecimal(data) * 0.1;
+
+    int temp = strHexToDecimal(data);
+
+    if (temp > 32767) {
+        qDebug() << data;
+        temp = temp - 0x01;
+        temp = ~int16_t(temp);
+
+
+        temp = - temp;
+    }
 
     return temp;
 }
