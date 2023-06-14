@@ -301,7 +301,7 @@ border-radius:12px;</string>
      </font>
     </property>
     <property name="text">
-     <string/>
+     <string>开始控温</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_4">

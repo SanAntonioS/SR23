@@ -354,12 +354,12 @@ void MainWindow::on_btnSetCom_clicked()
 void MainWindow::on_btnCtrlTemp_clicked()
 {
     if (ui->btnCtrlTemp->text() == "开始控温"){
-        processData("W01900,0000");
+        processData("W01900,0001");
         serial->write(messageSend);
         ui->btnCtrlTemp->setText("停止控温");
     }
     else {
-        processData("W01900,0001");
+        processData("W01900,0000");
         serial->write(messageSend);
         ui->btnCtrlTemp->setText("开始控温");
     }
