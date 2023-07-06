@@ -163,22 +163,50 @@ void MainWindow::DataSend()
     serial->write(messageSend);
 }
 
+QList<float> Temperature_History_3min;
+QList<float> Temperature_History_6min;
+
 void MainWindow::slotGetTemp()
 {
     static uint count = 0;
-    static float Temperature, Power, maxY = 0;
+    static float Temperature, Power, dTf3, dTf6, maxY = 0;
 
     if(count%2 == 0){
-        Temperature = AppData::getData(messageRecv) * 0.1;
+        Temperature = AppData::getTempData(messageRecv) * 0.001;
 
-        ui->labTemp->setText(QString::number(Temperature) + "℃");
-        ui->labPower->setText(QString::number(Power) + "%");
+        if(Temperature_History_3min.size() > 2 && Temperature_History_3min.at(0) - Temperature > 40)
+            Temperature = Temperature_History_3min.at(0);
+
+        Temperature_History_3min.prepend(Temperature);
+        Temperature_History_6min.prepend(Temperature);
+        if(Temperature_History_3min.size() > 180)
+        {
+            Temperature_History_3min.removeLast();
+            QList<float>::iterator Tmin = std::min_element(Temperature_History_3min.begin(), Temperature_History_3min.end());
+            QList<float>::iterator Tmax = std::max_element(Temperature_History_3min.begin(), Temperature_History_3min.end());
+//            float T_Target = ui->TxtSv->text().toFloat();
+//            dTf = qMax(std::abs(T_Target-Tmax[0]), std::abs(T_Target-Tmin[0]));
+            dTf3 = (Tmax[0] - Tmin[0]) / 2;
+            ui->labDTF3->setText("±" + QString::number(dTf3,'f',3) + "℃");
+        }
+        if(Temperature_History_6min.size() > 360)
+        {
+            Temperature_History_6min.removeLast();
+            QList<float>::iterator Tmin = std::min_element(Temperature_History_6min.begin(), Temperature_History_6min.end());
+            QList<float>::iterator Tmax = std::max_element(Temperature_History_6min.begin(), Temperature_History_6min.end());
+            dTf6 = (Tmax[0] - Tmin[0]) / 2;
+            ui->labDTF6->setText("±" + QString::number(dTf6,'f',3) + "℃");
+        }
+
+
+        ui->labTemp->setText(QString::number(Temperature,'f',3) + "℃");
+        ui->labPower->setText(QString::number(Power,'f',1) + "%");
 
         if(Temperature != 0) {
             QFile file(csvFile);
             file.open( QIODevice::Append );
             QTextStream out(&file);
-            out<<tr("%1,").arg(count/2)<<tr("%2,").arg(Temperature)<<tr("%3,\n").arg(Power);
+            out<<tr("%1,").arg(count/2)<<tr("%2,").arg(Temperature)<<tr("%3,").arg(Power)<<tr("%4,").arg(dTf3)<<tr("%5,\n").arg(dTf6);
             file.close();
 
             QChart *qchart =(QChart *)ui->graphicsView->chart();
@@ -202,7 +230,7 @@ void MainWindow::slotGetTemp()
         serial->write(messageSend);
     }
     else {
-        Power = AppData::getData(messageRecv) * 0.1;
+        Power = AppData::getPowerData(messageRecv) * 0.1;
         messageRecv.clear();
         processData("R02800"); //读取温度
         serial->write(messageSend);
@@ -222,7 +250,7 @@ void MainWindow::slotGetPID()
         count ++;
         }break;
     case 1:{
-        QString P = QString::number(AppData::getData(messageRecv) * 0.1);
+        QString P = QString::number(AppData::getPIDData(messageRecv) * 0.1);
         ui->tabPID->setItem(0, 0, new QTableWidgetItem(P));
         messageRecv.clear();
         processData("R04010");
@@ -230,7 +258,7 @@ void MainWindow::slotGetPID()
         count ++;
     }break;
     case 2:{
-        QString I = QString::number(AppData::getData(messageRecv));
+        QString I = QString::number(AppData::getPIDData(messageRecv));
         ui->tabPID->setItem(0, 1, new QTableWidgetItem(I));
         messageRecv.clear();
         processData("R04020");
@@ -238,7 +266,7 @@ void MainWindow::slotGetPID()
         count ++;
     }break;
     case 3:{
-        QString D = QString::number(AppData::getData(messageRecv));
+        QString D = QString::number(AppData::getPIDData(messageRecv));
         ui->tabPID->setItem(0, 2, new QTableWidgetItem(D));
         messageRecv.clear();
         processData("R04030");
@@ -246,7 +274,7 @@ void MainWindow::slotGetPID()
         count ++;
     }break;
     case 4:{
-        QString MR = QString::number(AppData::getData(messageRecv) * 0.1);
+        QString MR = QString::number(AppData::getPIDData(messageRecv) * 0.1);
         ui->tabPID->setItem(0, 3, new QTableWidgetItem(MR));    //MR -50.0% to 50.0%
         messageRecv.clear();
         processData("R04040");
@@ -254,7 +282,7 @@ void MainWindow::slotGetPID()
         count ++;
     }break;
     case 5:{
-        QString DF = QString::number(AppData::getData(messageRecv));
+        QString DF = QString::number(AppData::getPIDData(messageRecv));
         ui->tabPID->setItem(0, 4, new QTableWidgetItem(DF));
         messageRecv.clear();
         processData("R04070");
@@ -262,7 +290,7 @@ void MainWindow::slotGetPID()
         count ++;
     }break;
     case 6:{
-        QString SF = QString::number(AppData::getData(messageRecv) * 0.01);
+        QString SF = QString::number(AppData::getPIDData(messageRecv) * 0.01);
         ui->tabPID->setItem(0, 5, new QTableWidgetItem(SF));
         messageRecv.clear();
         count ++;
@@ -320,7 +348,7 @@ void MainWindow::on_btnGetTemp_clicked()
     file.open( QIODevice::ReadWrite | QIODevice::Text );
 
     QTextStream out(&file);
-    out<<tr("time(s),")<<tr("temperature(℃),")<<tr("power(%),\n");
+    out<<tr("time(s),")<<tr("temperature(℃),")<<tr("power(%),")<<tr("dTf3(℃/3min),")<<tr("dTf6(℃/6min),\n");
 
     file.close();
 

@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QtCore>
 #include <QDebug>
+#include <QList>
 #include <QMessageBox>
 #include <QtSerialPort/QSerialPort>
 #include <QtSerialPort/QSerialPortInfo>

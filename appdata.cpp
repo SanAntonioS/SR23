@@ -17,7 +17,23 @@ QString AppData::decimalToStrHex(int decimal)
     return temp;
 }
 
-int AppData::getData(QByteArray data)
+int AppData::getTempData(QByteArray data)
+{
+    data = data.left(data.indexOf('\x03')).right(data.indexOf(",") - 2);
+    int temp = strHexToDecimal(data);
+
+    return temp;
+}
+
+int AppData::getPowerData(QByteArray data)
+{
+    data = data.left(data.indexOf('\x03')).right(data.indexOf(",") - 3);
+    int temp = strHexToDecimal(data);
+
+    return temp;
+}
+
+int AppData::getPIDData(QByteArray data)
 {
     data = data.left(data.indexOf('\x03')).right(data.indexOf(",") - 3);
 
@@ -27,7 +43,6 @@ int AppData::getData(QByteArray data)
         qDebug() << data;
         temp = temp - 0x01;
         temp = ~int16_t(temp);
-
 
         temp = - temp;
     }
